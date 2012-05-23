@@ -18,7 +18,7 @@ describe MemCache do
   end
 
   it "should return nil for a non-existent key" do
-    @client.get('non-existent-key').should be_nil
+    @client.read('non-existent-key').should be_nil
   end
 
   describe "setting servers" do
@@ -60,21 +60,21 @@ describe MemCache do
       @nsclient.set "test", 333, 0
     end
 
-    it "should set and get values transparently" do
-      @nsclient.get("test").should == 333
+    it "should set and read values transparently" do
+      @nsclient.read("test").should == 333
     end
 
     it "should set values to the given namespace" do
-      @nsclient.get("test").to_i.should == 333
+      @nsclient.read("test").to_i.should == 333
     end
 
     it "should not set a value without the given namespace" do
-      @client.get("test").to_i.should_not == 333
+      @client.read("test").to_i.should_not == 333
     end
 
     it "should delete values in the given namespace" do
       @nsclient.delete "test"
-      @nsclient.get("test").should be_nil
+      @nsclient.read("test").should be_nil
     end
 
     it "should increment in the given namespace" do
@@ -92,22 +92,22 @@ describe MemCache do
     end
 
     it "should be able to retrieve the value" do
-      @client.get('key').should == 'value'
+      @client.read('key').should == 'value'
     end
 
     it "should not be able to retrieve the value after deleting" do
       @client.delete('key')
-      @client.get('key').should be_nil
+      @client.read('key').should be_nil
     end
 
     it "should not be able to retrieve the value after flushing everything" do
       @client.flush_all
-      @client.get("key").should be_nil
+      @client.read("key").should be_nil
     end
 
     it "should work exactly the same if the []= operator were used" do
       @client['key'] = 'val'
-      @client.get('key').should == 'val'
+      @client.read('key').should == 'val'
     end
   end
 
@@ -118,7 +118,7 @@ describe MemCache do
 
     it "should be able to replace the stored value." do
       @client.replace('key', 'new value').should be_true
-      @client['key'].should == 'new value'
+      @client.read('key').should == 'new value'
     end
 
     it "should not replace values that are not in the cache." do
@@ -131,12 +131,8 @@ describe MemCache do
       @client['key'] = 'value'
     end
 
-    it "should be able to retrieve the value using []" do
-      @client['key'].should == 'value'
-    end
-
-    it "should be able to retrieve the value using get" do
-      @client.get('key').should == 'value'
+    it "should be able to retrieve the value using read" do
+      @client.read('key').should == 'value'
     end
   end
 
@@ -161,13 +157,13 @@ describe MemCache do
     it "should increment a value by 1 without a second parameter" do
       @client.set 'incr', 100, 0
       @client.incr 'incr'
-      @client.get('incr').to_i.should == 101
+      @client.read('incr').to_i.should == 101
     end
 
     it "should increment a value by a given second parameter" do
       @client.set 'incr', 100, 0
       @client.incr 'incr', 20
-      @client.get('incr').to_i.should == 120
+      @client.read('incr').to_i.should == 120
     end
   end
 
@@ -176,69 +172,69 @@ describe MemCache do
     it "should decrement a value by 1 without a second parameter" do
       @client.set 'decr', 100, 0
       @client.decr 'decr'
-      @client.get('decr').to_i.should == 99
+      @client.read('decr').to_i.should == 99
     end
 
     it "should decrement a value by a given second parameter" do
       @client.set 'decr', 100, 0
       @client.decr 'decr', 20
-      @client.get('decr').to_i.should == 80
+      @client.read('decr').to_i.should == 80
     end
   end
 
   describe "with Ruby Objects" do
-    it "should be able to transparently set and get equivalent Ruby objects" do
+    it "should be able to transparently set and read equivalent Ruby objects" do
       obj = { :test => :hi }
       @client.set('obj', obj)
-      @client.get('obj').should == obj
+      @client.read('obj').should == obj
     end
 
     it %[should work with those whose marshalled stream contains invalid UTF8 byte sequences] do
       # this test fails w/o the Base64 encoding step
       obj = { :foo => 900 }
       @client.set('obj', obj)
-      @client.get('obj').should == obj
+      @client.read('obj').should == obj
     end
 
     it %[should work with binary blobs] do
       # this test fails w/o the Base64 encoding step
       blob = "\377\330\377\340\000\020JFIF\000\001\001\000\000\001\000\001\000\000\377"
       @client.set('blob', blob)
-      @client.get('blob').should == blob
+      @client.read('blob').should == blob
     end
   end
 
   describe "using set with an expiration" do
     it "should make a value unretrievable if the expiry is set to a negative value" do
       @client.set('key', 'val', -1)
-      @client.get('key').should be_nil
+      @client.read('key').should be_nil
     end
 
     it "should make a value retrievable for only the amount of time if a value is given" do
       @client.set('key', 'val', 2)
-      @client.get('key').should == 'val'
+      @client.read('key').should == 'val'
       sleep(3)
-      @client.get('key').should be_nil
+      @client.read('key').should be_nil
     end
   end
 
-  describe "#get_multi" do
-    it "should get 2 keys" do
+  describe "#read_multi" do
+    it "should read 2 keys" do
       @client.set('key', 'val')
       @client.set('key2', 'val2')
-      @client.get_multi(%w/key key2/).should == {'key' => 'val', 'key2' => 'val2'}
+      @client.read_multi(%w/key key2/).should == {'key' => 'val', 'key2' => 'val2'}
     end
 
     it "should ignore nil values" do
       @client.set('key', 'val')
       @client.set('key2', 'val2')
-      @client.get_multi(%w/key key2 key3/).should == {'key' => 'val', 'key2' => 'val2'}
+      @client.read_multi(%w/key key2 key3/).should == {'key' => 'val', 'key2' => 'val2'}
     end
 
     it "should not marshall if requested" do
       @client.set('key', 'val', 0, true)
       @client.set('key2', 'val2', 0, true)
-      @client.get_multi(%w/key key2/, true).should == {'key' => 'val', 'key2' => 'val2'}
+      @client.read_multi(%w/key key2/, :raw => true).should == {'key' => 'val', 'key2' => 'val2'}
     end
   end
 

@@ -128,13 +128,13 @@ class MemCache
       @pool.aliveCheck = opts[:pool_use_alive]
       @pool.nagle = opts[:pool_use_nagle]
 
-      # public static final int NATIVE_HASH     = 0;        
+      # public static final int NATIVE_HASH     = 0;
       #     // native String.hashCode();
-      # public static final int OLD_COMPAT_HASH = 1;        
+      # public static final int OLD_COMPAT_HASH = 1;
       #     // original compatibility hashing algorithm (works with other clients)
       # public static final int NEW_COMPAT_HASH = 2;
       #     // new CRC32 based compatibility hashing algorithm (works with other clients)
-      # public static final int CONSISTENT_HASH = 3;        
+      # public static final int CONSISTENT_HASH = 3;
       #     // MD5 Based -- Stops thrashing when a server added or removed
       @pool.hashingAlg = opts[:pool_hashing_algorithm]
 
@@ -176,10 +176,10 @@ class MemCache
   ##
   # Retrieves a value associated with the key from the
   # cache. Retrieves the raw value if the raw parameter is set.
-  def get(key, raw = false)
+  def read(key, options={})
     value = @client.get(make_cache_key(key))
     return nil if value.nil?
-    unless raw
+    unless options[:raw]
       begin
         marshal_bytes = java.lang.String.new(value).getBytes(MARSHALLING_CHARSET)
         decoded = Base64.decode64(String.from_java_bytes(marshal_bytes))
@@ -195,11 +195,9 @@ class MemCache
     value
   end
 
-  alias :[] :get
-
   ##
   # Retrieves the values associated with the keys parameter.
-  def get_multi(keys, raw = false)
+  def read_multi(keys, options={})
     keys = keys.map {|k| make_cache_key(k)}
     keys = keys.to_java :String
     values = {}
@@ -207,7 +205,7 @@ class MemCache
     values_j.to_a.each {|kv|
       k,v = kv
       next if v.nil?
-      unless raw
+      unless options[:raw]
         begin
           marshal_bytes = java.lang.String.new(v).getBytes(MARSHALLING_CHARSET)
           decoded = Base64.decode64(String.from_java_bytes(marshal_bytes))
