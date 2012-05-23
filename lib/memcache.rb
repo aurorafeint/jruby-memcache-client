@@ -245,7 +245,7 @@ class MemCache
   # will ignore values that are not already present in the cache,
   # which makes this safe to use without first checking for the
   # existance of the key in the cache first.
-  def delete(key, expires = 0)
+  def delete(key, options={})
     raise MemCacheError, "Update of readonly cache" if @readonly
     @client.delete(make_cache_key(key))
   end
