@@ -57,18 +57,18 @@ describe MemCache do
       @ns = 'namespace'
       @nsclient = MemCache.new [ @server ] , :namespace => @ns
       @nsclient.flush_all
-      @nsclient.set "test", 333, 0
+      @nsclient.write "test", 333, 0
     end
 
-    it "should set and read values transparently" do
+    it "should write and read values transparently" do
       @nsclient.read("test").should == 333
     end
 
-    it "should set values to the given namespace" do
+    it "should write values to the given namespace" do
       @nsclient.read("test").to_i.should == 333
     end
 
-    it "should not set a value without the given namespace" do
+    it "should not write a value without the given namespace" do
       @client.read("test").to_i.should_not == 333
     end
 
@@ -86,9 +86,9 @@ describe MemCache do
     end
   end
 
-  describe "after setting a value to MemCache" do
+  describe "after writing a value to MemCache" do
     before(:each) do
-      @client.set 'key', 'value'
+      @client.write 'key', 'value'
     end
 
     it "should be able to retrieve the value" do
@@ -104,16 +104,11 @@ describe MemCache do
       @client.flush_all
       @client.read("key").should be_nil
     end
-
-    it "should work exactly the same if the []= operator were used" do
-      @client['key'] = 'val'
-      @client.read('key').should == 'val'
-    end
   end
 
   describe "replacing values from the cache." do
     before :each do
-      @client['key'] = 'value'
+      @client.write('key', 'value')
     end
 
     it "should be able to replace the stored value." do
@@ -123,16 +118,6 @@ describe MemCache do
 
     it "should not replace values that are not in the cache." do
       @client.replace('notthere', 'value').should be_false
-    end
-  end
-
-  describe "using the Hash notation" do
-    before :each do
-      @client['key'] = 'value'
-    end
-
-    it "should be able to retrieve the value using read" do
-      @client.read('key').should == 'value'
     end
   end
 
@@ -155,13 +140,13 @@ describe MemCache do
   describe "#incr" do
 
     it "should increment a value by 1 without a second parameter" do
-      @client.set 'incr', 100, 0
+      @client.write 'incr', 100, 0
       @client.incr 'incr'
       @client.read('incr').to_i.should == 101
     end
 
     it "should increment a value by a given second parameter" do
-      @client.set 'incr', 100, 0
+      @client.write 'incr', 100, 0
       @client.incr 'incr', 20
       @client.read('incr').to_i.should == 120
     end
@@ -170,48 +155,48 @@ describe MemCache do
   describe "#decr" do
 
     it "should decrement a value by 1 without a second parameter" do
-      @client.set 'decr', 100, 0
+      @client.write 'decr', 100, 0
       @client.decr 'decr'
       @client.read('decr').to_i.should == 99
     end
 
     it "should decrement a value by a given second parameter" do
-      @client.set 'decr', 100, 0
+      @client.write 'decr', 100, 0
       @client.decr 'decr', 20
       @client.read('decr').to_i.should == 80
     end
   end
 
   describe "with Ruby Objects" do
-    it "should be able to transparently set and read equivalent Ruby objects" do
+    it "should be able to transparently write and read equivalent Ruby objects" do
       obj = { :test => :hi }
-      @client.set('obj', obj)
+      @client.write('obj', obj)
       @client.read('obj').should == obj
     end
 
     it %[should work with those whose marshalled stream contains invalid UTF8 byte sequences] do
       # this test fails w/o the Base64 encoding step
       obj = { :foo => 900 }
-      @client.set('obj', obj)
+      @client.write('obj', obj)
       @client.read('obj').should == obj
     end
 
     it %[should work with binary blobs] do
       # this test fails w/o the Base64 encoding step
       blob = "\377\330\377\340\000\020JFIF\000\001\001\000\000\001\000\001\000\000\377"
-      @client.set('blob', blob)
+      @client.write('blob', blob)
       @client.read('blob').should == blob
     end
   end
 
-  describe "using set with an expiration" do
-    it "should make a value unretrievable if the expiry is set to a negative value" do
-      @client.set('key', 'val', -1)
+  describe "using write with an expiration" do
+    it "should make a value unretrievable if the expiry is write to a negative value" do
+      @client.write('key', 'val', :expires_in => -1)
       @client.read('key').should be_nil
     end
 
     it "should make a value retrievable for only the amount of time if a value is given" do
-      @client.set('key', 'val', 2)
+      @client.write('key', 'val', :expires_in => 2)
       @client.read('key').should == 'val'
       sleep(3)
       @client.read('key').should be_nil
@@ -220,20 +205,20 @@ describe MemCache do
 
   describe "#read_multi" do
     it "should read 2 keys" do
-      @client.set('key', 'val')
-      @client.set('key2', 'val2')
+      @client.write('key', 'val')
+      @client.write('key2', 'val2')
       @client.read_multi(%w/key key2/).should == {'key' => 'val', 'key2' => 'val2'}
     end
 
     it "should ignore nil values" do
-      @client.set('key', 'val')
-      @client.set('key2', 'val2')
+      @client.write('key', 'val')
+      @client.write('key2', 'val2')
       @client.read_multi(%w/key key2 key3/).should == {'key' => 'val', 'key2' => 'val2'}
     end
 
     it "should not marshall if requested" do
-      @client.set('key', 'val', 0, true)
-      @client.set('key2', 'val2', 0, true)
+      @client.write('key', 'val', :raw => true)
+      @client.write('key2', 'val2', :raw => true)
       @client.read_multi(%w/key key2/, :raw => true).should == {'key' => 'val', 'key2' => 'val2'}
     end
   end

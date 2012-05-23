@@ -227,18 +227,17 @@ class MemCache
   # Associates a value with a key in the cache. MemCached will expire
   # the value if an expiration is provided. The raw parameter allows
   # us to store a value without marshalling it first.
-  def set(key, value, expiry = 0, raw = false)
+  def write(key, value, options={})
     raise MemCacheError, "Update of readonly cache" if @readonly
-    value = marshal_value(value) unless raw
+    options[:expires_in] ||= 0
+    value = marshal_value(value) unless options[:raw]
     key = make_cache_key(key)
-    if expiry == 0
+    if options[:expires_in] == 0
       @client.set key, value
     else
-      @client.set key, value, expiration(expiry)
+      @client.set key, value, expiration(options[:expires_in])
     end
   end
-
-  alias :[]= :set
 
   ##
   # Add a new value to the cache following the same conventions that
