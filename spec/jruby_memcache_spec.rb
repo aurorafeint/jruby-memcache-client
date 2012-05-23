@@ -121,6 +121,26 @@ describe MemCache do
     end
   end
 
+  describe "#fetch" do
+    before :each do
+      @client.write('key', 'value')
+    end
+
+    it "should read the value from cache." do
+      @client.fetch('key') { 'new value' }.should == 'value'
+    end
+
+    it "should write value to cache with force" do
+      @client.fetch('key', :force => true) { 'new value' }.should == 'new value'
+    end
+
+    it "should write value to cache with expires_in and force" do
+      @client.fetch('key', :expires_in => 2, :force => true) { 'new value' }
+      sleep 3
+      @client.read('key').should be_nil
+    end
+  end
+
   describe "#stats" do
     it "should return a hash" do
       @client.stats.should be_instance_of(Hash)

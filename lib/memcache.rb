@@ -241,6 +241,28 @@ class MemCache
   end
 
   ##
+  # Retrieves a value associated with the key from the
+  # cache, if the key is not existed, associates the block value
+  # with the key int eh cache.
+  def fetch(key, options={})
+    key = make_cache_key(key)
+    if block_given?
+      unless options[:force]
+        value = read(key, options)
+      end
+      if !value.nil?
+        value
+      else
+        value = yield
+        write(key, value, options)
+        value
+      end
+    else
+      read(key, options)
+    end
+  end
+
+  ##
   # Removes the value associated with the key from the cache. This
   # will ignore values that are not already present in the cache,
   # which makes this safe to use without first checking for the
