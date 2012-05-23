@@ -203,6 +203,22 @@ describe MemCache do
     end
   end
 
+  describe "using write with unless_exist" do
+    before do
+      @client.write('key', 'val')
+    end
+
+    it "should not make a value if unless_exist is true" do
+      @client.write('key', 'new_val', :unless_exist => true)
+      @client.read('key').should == 'val'
+    end
+
+    it "should make a value if unless_exist is false" do
+      @client.write('key', 'new_val', :unless_exist => false)
+      @client.read('key').should == 'new_val'
+    end
+  end
+
   describe "#read_multi" do
     it "should read 2 keys" do
       @client.write('key', 'val')

@@ -230,25 +230,13 @@ class MemCache
   def write(key, value, options={})
     raise MemCacheError, "Update of readonly cache" if @readonly
     options[:expires_in] ||= 0
+    method = options[:unless_exist] ? :add : :set
     value = marshal_value(value) unless options[:raw]
     key = make_cache_key(key)
     if options[:expires_in] == 0
-      @client.set key, value
+      @client.send method, key, value
     else
-      @client.set key, value, expiration(options[:expires_in])
-    end
-  end
-
-  ##
-  # Add a new value to the cache following the same conventions that
-  # are used in the set method.
-  def add(key, value, expiry = 0, raw = false)
-    raise MemCacheError, "Update of readonly cache" if @readonly
-    value = marshal_value(value) unless raw
-    if expiry == 0
-      @client.add make_cache_key(key), value
-    else
-      @client.add make_cache_key(key), value, expiration(expiry)
+      @client.send method, key, value, expiration(options[:expires_in])
     end
   end
 
