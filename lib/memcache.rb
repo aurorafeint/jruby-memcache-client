@@ -48,6 +48,9 @@ class MemCache
 
   attr_accessor :request_timeout
 
+  # TODO: Rails set the logger for MemCache.
+  attr_accessor :logger
+
   ##
   # The namespace for this instance
 
@@ -177,7 +180,9 @@ class MemCache
   # Retrieves a value associated with the key from the
   # cache. Retrieves the raw value if the raw parameter is set.
   def read(key, options={})
-    value = @client.get(make_cache_key(key))
+    value = instrument(:read, key, options) do
+      @client.get(make_cache_key(key))
+    end
     return nil if value.nil?
     unless options[:raw]
       begin
@@ -201,7 +206,9 @@ class MemCache
     keys = keys.map {|k| make_cache_key(k)}
     keys = keys.to_java :String
     values = {}
-    values_j = @client.getMulti(keys)
+    values_j = instrument(:read_multi, keys, options) do
+      @client.getMulti(keys)
+    end
     values_j.to_a.each {|kv|
       k,v = kv
       next if v.nil?
@@ -233,10 +240,12 @@ class MemCache
     method = write_method(options)
     value = marshal_value(value) unless options[:raw]
     key = make_cache_key(key)
-    if options[:expires_in] == 0
-      @client.send method, key, value
-    else
-      @client.send method, key, value, expiration(options[:expires_in])
+    instrument(:write, method, options) do
+      if options[:expires_in] == 0
+        @client.send method, key, value
+      else
+        @client.send method, key, value, expiration(options[:expires_in])
+      end
     end
   end
 
@@ -269,14 +278,18 @@ class MemCache
   # existance of the key in the cache first.
   def delete(key, options={})
     raise MemCacheError, "Update of readonly cache" if @readonly
-    @client.delete(make_cache_key(key))
+    instrument(:delete, key, options) do
+      @client.delete(make_cache_key(key))
+    end
   end
 
   ##
   # Increments the value associated with the key by a certain amount.
   def incr(key, amount = 1)
     raise MemCacheError, "Update of readonly cache" if @readonly
-    value = @client.incr(make_cache_key(key), amount)
+    value = instrument(:incr, key, amount) do
+      @client.incr(make_cache_key(key), amount)
+    end
     return nil if value == "NOT_FOUND\r\n"
     return value.to_i
   end
@@ -285,7 +298,9 @@ class MemCache
   # Decrements the value associated with the key by a certain amount.
   def decr(key, amount = 1)
     raise MemCacheError, "Update of readonly cache" if @readonly
-    value = @client.decr(make_cache_key(key),amount)
+    value = instrument(:decr, key, amount) do
+      @client.decr(make_cache_key(key),amount)
+    end
     return nil if value == "NOT_FOUND\r\n"
     return value.to_i
   end
@@ -343,6 +358,12 @@ class MemCache
     else
       :set
     end
+  end
+
+  def instrument(operation, key, options)
+    logger.debug("Cache #{operation}: #{key}#{options ? " (#{options.inspect})" : ""}") if logger && !silence? && !logger_off?
+
+    yield
   end
 end
 
