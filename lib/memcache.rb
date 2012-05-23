@@ -230,7 +230,7 @@ class MemCache
   def write(key, value, options={})
     raise MemCacheError, "Update of readonly cache" if @readonly
     options[:expires_in] ||= 0
-    method = options[:unless_exist] ? :add : :set
+    method = write_method(options)
     value = marshal_value(value) unless options[:raw]
     key = make_cache_key(key)
     if options[:expires_in] == 0
@@ -248,20 +248,6 @@ class MemCache
   def delete(key, options={})
     raise MemCacheError, "Update of readonly cache" if @readonly
     @client.delete(make_cache_key(key))
-  end
-
-  ##
-  # Replaces the value associated with a key in the cache if it
-  # already is stored. It will not add the value to the cache if it
-  # isn't already present.
-  def replace(key, value, expiry = 0, raw = false)
-    raise MemCacheError, "Update of readonly cache" if @readonly
-    value = marshal_value(value) unless raw
-    if expiry == 0
-      @client.replace make_cache_key(key), value
-    else
-      @client.replace make_cache_key(key), value
-    end
   end
 
   ##
@@ -325,6 +311,16 @@ class MemCache
     encoded = Base64.encode64(Marshal.dump(value))
     marshal_bytes = encoded.to_java_bytes
     java.lang.String.new(marshal_bytes, MARSHALLING_CHARSET)
+  end
+
+  def write_method(options={})
+    if options[:unless_exist]
+      :add
+    elsif options[:if_exist]
+      :replace
+    else
+      :set
+    end
   end
 end
 

@@ -106,18 +106,18 @@ describe MemCache do
     end
   end
 
-  describe "replacing values from the cache." do
+  describe "using write with if_exist" do
     before :each do
       @client.write('key', 'value')
     end
 
-    it "should be able to replace the stored value." do
-      @client.replace('key', 'new value').should be_true
+    it "should be able to write the stored value." do
+      @client.write('key', 'new value', :if_exist => true).should be_true
       @client.read('key').should == 'new value'
     end
 
-    it "should not replace values that are not in the cache." do
-      @client.replace('notthere', 'value').should be_false
+    it "should not write values that are not in the cache." do
+      @client.write('notthere', 'value', :if_exist => true).should be_false
     end
   end
 
