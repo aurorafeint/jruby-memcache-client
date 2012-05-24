@@ -51,6 +51,15 @@ class MemCache
   # TODO: Rails set the logger for MemCache.
   attr_accessor :logger
 
+  attr_reader :silence
+
+  def silence!
+    @silence = true
+    self
+  end
+
+  alias silence? silence
+
   ##
   # The namespace for this instance
 
@@ -361,7 +370,7 @@ class MemCache
   end
 
   def instrument(operation, key, options)
-    logger.debug("Cache #{operation}: #{key}#{options ? " (#{options.inspect})" : ""}") if logger && !silence? && !logger_off?
+    logger.debug("Cache #{operation}: #{key}#{options ? " (#{options.inspect})" : ""}") if logger && !silence?
 
     yield
   end
