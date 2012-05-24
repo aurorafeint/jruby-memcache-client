@@ -188,7 +188,8 @@ class MemCache
   ##
   # Retrieves a value associated with the key from the
   # cache. Retrieves the raw value if the raw parameter is set.
-  def read(key, options={})
+  def read(key, options=nil)
+    options ||= {}
     value = instrument(:read, key, options) do
       @client.get(make_cache_key(key))
     end
@@ -211,7 +212,8 @@ class MemCache
 
   ##
   # Retrieves the values associated with the keys parameter.
-  def read_multi(keys, options={})
+  def read_multi(keys, options=nil)
+    options ||= {}
     keys = keys.map {|k| make_cache_key(k)}
     keys = keys.to_java :String
     values = {}
@@ -243,8 +245,9 @@ class MemCache
   # Associates a value with a key in the cache. MemCached will expire
   # the value if an expiration is provided. The raw parameter allows
   # us to store a value without marshalling it first.
-  def write(key, value, options={})
+  def write(key, value, options=nil)
     raise MemCacheError, "Update of readonly cache" if @readonly
+    options ||= {}
     options[:expires_in] ||= 0
     method = write_method(options)
     value = marshal_value(value) unless options[:raw]
@@ -262,7 +265,8 @@ class MemCache
   # Retrieves a value associated with the key from the
   # cache, if the key is not existed, associates the block value
   # with the key int eh cache.
-  def fetch(key, options={})
+  def fetch(key, options=nil)
+    options ||= {}
     key = make_cache_key(key)
     if block_given?
       unless options[:force]
@@ -285,8 +289,9 @@ class MemCache
   # will ignore values that are not already present in the cache,
   # which makes this safe to use without first checking for the
   # existance of the key in the cache first.
-  def delete(key, options={})
+  def delete(key, options=nil)
     raise MemCacheError, "Update of readonly cache" if @readonly
+    options ||= {}
     instrument(:delete, key, options) do
       @client.delete(make_cache_key(key))
     end
