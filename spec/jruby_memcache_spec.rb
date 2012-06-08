@@ -154,11 +154,20 @@ describe MemCache do
     it "should return a String for version" do
       @client.stats[@server]['version'].should be_instance_of(String)
     end
+  end
 
+  describe "#exist?" do
+    it "should return false if no such key" do
+      @client.exist?('non_exist').should be_false
+    end
+
+    it "should return true if the key is already existed" do
+      @client.write 'exist', 'str'
+      @client.exist?('exist').should be_true
+    end
   end
 
   describe "#incr" do
-
     it "should increment a value by 1 without a second parameter" do
       @client.write 'incr', 100, 0
       @client.incr 'incr'

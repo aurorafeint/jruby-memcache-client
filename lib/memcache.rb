@@ -289,11 +289,18 @@ class MemCache
   # will ignore values that are not already present in the cache,
   # which makes this safe to use without first checking for the
   # existance of the key in the cache first.
-  def delete(key, options=nil)
+  def delete(key)
     raise MemCacheError, "Update of readonly cache" if @readonly
-    options ||= {}
-    instrument(:delete, key, options) do
+    instrument(:delete, key) do
       @client.delete(make_cache_key(key))
+    end
+  end
+
+  ##
+  # Checks if the key already exists.
+  def exist?(key)
+    instrument(:exist?, key) do
+      @client.key_exists?(make_cache_key(key))
     end
   end
 
@@ -374,10 +381,9 @@ class MemCache
     end
   end
 
-  def instrument(operation, key, options)
+  def instrument(operation, key, options=nil)
     logger.debug("Cache #{operation}: #{key}#{options ? " (#{options.inspect})" : ""}") if logger && !silence?
 
     yield
   end
 end
-
